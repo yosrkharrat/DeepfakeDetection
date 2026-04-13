@@ -1,0 +1,4 @@
+# Docker Compose placeholder.
+# Purpose:
+# - Define API service and local volume mounts.
+# - Simplify local deployment workflow.

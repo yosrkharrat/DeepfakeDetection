@@ -1,0 +1,4 @@
+# FFT-only ablation configuration placeholder.
+# Purpose:
+# - Override defaults to run FFTOnlyClassifier experiments.
+# - Measure the FFT stream standalone contribution.

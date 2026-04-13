@@ -1,0 +1,4 @@
+# Default experiment configuration placeholder.
+# Purpose:
+# - Store base hyperparameters and paths.
+# - Include input size, batch size, learning rate, scheduler, and epochs.
