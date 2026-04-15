@@ -1,3 +1,0 @@
-# Python dependency list placeholder.
-# Purpose:
-# - Pin runtime and training package versions for reproducible setup.
