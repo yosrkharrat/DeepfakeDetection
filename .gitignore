@@ -1,3 +1,38 @@
-# Git ignore rules placeholder.
-# Purpose:
-# - Ignore datasets, checkpoints, caches, environments, and local artifacts.
+# Data — never commit raw videos, crops, or splits
+data/raw/
+data/processed/
+data/splits/
+data/*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Model checkpoints & results
+results/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
