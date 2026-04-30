@@ -1,8 +1,9 @@
-# Data — never commit raw videos, crops, or splits
+﻿# Data â€” never commit raw videos, crops, or splits
 data/raw/
 data/processed/
 data/splits/
 data/*.zip
+artifacts/
 
 # Python
 __pycache__/
@@ -13,6 +14,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+tmp*/
 
 # Environments
 .venv/
@@ -36,3 +38,7 @@ results/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local ad-hoc test images
+test sample*.jpg
+

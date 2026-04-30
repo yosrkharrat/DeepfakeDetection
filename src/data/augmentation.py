@@ -19,6 +19,14 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
+def _image_compression_transform(A: Any):
+    """Support both old and new Albumentations ImageCompression signatures."""
+    try:
+        return A.ImageCompression(quality_range=(60, 100), p=0.3)
+    except TypeError:
+        return A.ImageCompression(quality_lower=60, quality_upper=100, p=0.3)
+
+
 def get_train_augmentation(image_size: int = 224):
     """Training augmentation policy aligned with project spec."""
     A = _require_albumentations()
@@ -27,7 +35,7 @@ def get_train_augmentation(image_size: int = 224):
             A.Resize(image_size, image_size),
             A.HorizontalFlip(p=0.5),
             A.Rotate(limit=15, border_mode=0, p=0.4),
-            A.ImageCompression(quality_range=(60, 100), p=0.3),
+            _image_compression_transform(A),
             A.RandomBrightnessContrast(p=0.4),
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
@@ -43,4 +51,3 @@ def get_eval_augmentation(image_size: int = 224):
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
         ]
     )
-

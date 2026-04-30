@@ -1,7 +1,5 @@
-"""Dual-stream fusion model placeholder.
+"""Compatibility wrapper for the project fusion model."""
 
-Purpose:
-- Combine RGB (512-d) and FFT (256-d) features.
-- Apply a classifier head for real/fake prediction.
-- Produce final two-class outputs.
-"""
+from src.models.fusion_model import FusionModel
+
+__all__ = ["FusionModel"]

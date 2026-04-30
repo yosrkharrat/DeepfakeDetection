@@ -15,7 +15,6 @@ Why this works:
   from real camera images.
 """
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,7 +24,7 @@ import torch.nn.functional as F
 # FFT preprocessing (standalone utility — used in dataset.py too)
 # ---------------------------------------------------------------------------
 
-def compute_fft_magnitude(image_tensor: torch.Tensor) -> torch.Tensor:
+def compute_fft_magnitude(image_tensor: torch.Tensor, use_rfft: bool = False) -> torch.Tensor:
     """
     Compute the log-magnitude FFT spectrum of a face crop.
 
@@ -34,7 +33,8 @@ def compute_fft_magnitude(image_tensor: torch.Tensor) -> torch.Tensor:
                       If RGB (C=3), converts to grayscale before FFT.
 
     Returns:
-        Spectrum tensor of shape (B, 1, H, W), values in [0, 1].
+        Spectrum tensor of shape (B, 1, H, W) for fft2 or
+        (B, 1, H, W//2 + 1) for rfft2, values normalized to [0, 1].
     """
     if image_tensor.dim() == 3:
         image_tensor = image_tensor.unsqueeze(0)
@@ -50,14 +50,14 @@ def compute_fft_magnitude(image_tensor: torch.Tensor) -> torch.Tensor:
     else:
         gray = image_tensor
 
-    # 2D FFT via PyTorch (runs on GPU if tensor is on GPU)
-    fft = torch.fft.fft2(gray)
-
-    # Shift DC component to center of spectrum
-    fft_shifted = torch.fft.fftshift(fft)
-
-    # Log-magnitude (log1p avoids log(0), compresses dynamic range)
-    magnitude = torch.log1p(torch.abs(fft_shifted))
+    if use_rfft:
+        # Matches the teammate FFT notebook that trained the downloaded checkpoint.
+        fft = torch.fft.rfft2(gray, norm="ortho")
+        magnitude = torch.log1p(torch.abs(fft))
+    else:
+        fft = torch.fft.fft2(gray)
+        fft_shifted = torch.fft.fftshift(fft)
+        magnitude = torch.log1p(torch.abs(fft_shifted))
 
     # Normalize to [0, 1] per image
     b = magnitude.shape[0]
@@ -67,6 +67,32 @@ def compute_fft_magnitude(image_tensor: torch.Tensor) -> torch.Tensor:
     magnitude = (magnitude - mag_min) / (mag_max - mag_min + 1e-8)
 
     return magnitude  # shape: (B, 1, H, W)
+
+
+def normalize_fft_checkpoint_state_dict(
+    state_dict: dict[str, torch.Tensor],
+) -> tuple[dict[str, torch.Tensor], bool]:
+    """
+    Return a backbone-compatible state dict.
+
+    Some training scripts save FFTOnlyClassifier checkpoints with keys like
+    ``backbone.*`` and ``classifier.*``. Fusion needs only the backbone.
+
+    Returns:
+        backbone_state_dict: keys compatible with FFTStreamCNN
+        inferred_rfft: True when the checkpoint looks like the Kaggle
+            FFTOnlyClassifier wrapper checkpoint that used rfft2 preprocessing.
+    """
+    if any(key.startswith("backbone.") for key in state_dict):
+        backbone_state = {
+            key.removeprefix("backbone."): value
+            for key, value in state_dict.items()
+            if key.startswith("backbone.")
+        }
+        has_classifier = any(key.startswith("classifier.") for key in state_dict)
+        return backbone_state, has_classifier
+
+    return state_dict, False
 
 
 # ---------------------------------------------------------------------------
@@ -120,8 +146,9 @@ class FFTStreamCNN(nn.Module):
     The output feeds into the fusion FC classifier alongside the RGB stream.
     """
 
-    def __init__(self, dropout: float = 0.3):
+    def __init__(self, dropout: float = 0.3, use_rfft: bool = False):
         super().__init__()
+        self.register_buffer("_use_rfft_flag", torch.tensor(bool(use_rfft)), persistent=True)
 
         # Stem: large receptive field to capture frequency patterns early
         self.stem = nn.Sequential(
@@ -154,7 +181,7 @@ class FFTStreamCNN(nn.Module):
         """
         # Accept raw RGB input for convenience during inference
         if x.shape[1] == 3:
-            x = compute_fft_magnitude(x)
+            x = compute_fft_magnitude(x, use_rfft=self.uses_rfft)
 
         x = self.stem(x)
         x = self.block1(x)
@@ -166,6 +193,13 @@ class FFTStreamCNN(nn.Module):
         x = self.dropout(x)
         x = self.head(x)
         return x  # (B, 256)
+
+    @property
+    def uses_rfft(self) -> bool:
+        return bool(self._use_rfft_flag.item())
+
+    def set_use_rfft(self, enabled: bool) -> None:
+        self._use_rfft_flag.fill_(bool(enabled))
 
 
 # ---------------------------------------------------------------------------
