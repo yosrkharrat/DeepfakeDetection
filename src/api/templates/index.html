@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepGuard — Deepfake Detector</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>DeepGuard</span>
+        </div>
+        <p class="tagline">AI-powered deepfake detection</p>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <!-- ── Upload zone ── -->
+      <section class="upload-section" id="uploadSection">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov" hidden />
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16"/>
+              <line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+          </div>
+          <h2>Drop your file here</h2>
+          <p>or <button class="browse-btn" id="browseBtn">browse files</button></p>
+          <p class="upload-hint">
+            Images: JPG, PNG &nbsp;·&nbsp; Max 10 MB<br />
+            Videos: MP4, AVI, MOV &nbsp;·&nbsp; Max 200 MB
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Analysis panel (hidden until file picked) ── -->
+      <section class="analysis-section" id="analysisSection" hidden>
+        <div class="analysis-grid">
+
+          <!-- Left: preview -->
+          <div class="card preview-card">
+            <div class="card-header">
+              <h3>Input</h3>
+              <span class="file-meta" id="fileMeta"></span>
+            </div>
+            <div class="preview-wrap" id="previewWrap">
+              <!-- img / video + canvas injected by JS -->
+            </div>
+            <p class="fallback-notice" id="fallbackNotice" hidden>
+              ⚠ No face detected — analysing full frame
+            </p>
+          </div>
+
+          <!-- Right: result -->
+          <div class="card result-card" id="resultCard">
+
+            <!-- Analysing state -->
+            <div class="state-analyzing" id="stateAnalyzing">
+              <div class="spinner"></div>
+              <p>Analysing…</p>
+            </div>
+
+            <!-- Result state -->
+            <div class="state-result" id="stateResult" hidden>
+
+              <div class="verdict" id="verdict">
+                <div class="verdict-icon" id="verdictIcon"></div>
+                <div class="verdict-text">
+                  <span class="verdict-label" id="verdictLabel"></span>
+                  <span class="verdict-sub" id="verdictSub"></span>
+                </div>
+              </div>
+
+              <div class="prob-section">
+                <div class="prob-labels">
+                  <span>Real</span>
+                  <span>Fake</span>
+                </div>
+                <div class="prob-track">
+                  <div class="prob-fill" id="probFill"></div>
+                </div>
+                <div class="prob-values">
+                  <span id="realPct"></span>
+                  <span id="fakePct"></span>
+                </div>
+              </div>
+
+              <div class="stats-grid" id="statsGrid"></div>
+
+              <!-- Video frame timeline (images: hidden) -->
+              <div class="frames-section" id="framesSection" hidden>
+                <h4>Frame Analysis</h4>
+                <div class="frames-track" id="framesTrack"></div>
+                <p class="frames-hint">Each bar = one sampled frame &nbsp;·&nbsp;
+                  <span class="dot fake-dot"></span> Fake &nbsp;
+                  <span class="dot real-dot"></span> Real
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">↩ Analyse another file</button>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p>
+        Dual-stream fusion · ResNet-18 + FFT CNN ·
+        Accuracy&nbsp;<strong>95.87 %</strong> ·
+        AUC-ROC&nbsp;<strong>0.9951</strong> ·
+        Trained on FaceForensics++ C23
+      </p>
+    </footer>
+
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

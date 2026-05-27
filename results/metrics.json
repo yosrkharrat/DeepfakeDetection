@@ -1,3 +1,19 @@
 {
-  "_comment": "Evaluation metrics output placeholder. Real values will be written by evaluate.py."
+  "checkpoint": "results/checkpoints/fusion_best.pt",
+  "test_csv": "data/splits/test.csv",
+  "metrics": {
+    "threshold": 0.5,
+    "num_examples": 4937,
+    "true_positives": 3188,
+    "true_negatives": 1545,
+    "false_positives": 31,
+    "false_negatives": 173,
+    "accuracy": 0.9586793599351833,
+    "precision": 0.9903696800248525,
+    "recall": 0.9485272240404642,
+    "f1": 0.9689969604863222,
+    "auc_roc": 0.9951468169522909,
+    "false_positive_rate": 0.01967005076142132,
+    "loss": 0.09560810816179036
+  }
 }
