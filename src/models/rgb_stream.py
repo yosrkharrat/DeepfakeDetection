@@ -31,7 +31,9 @@ def normalize_rgb_checkpoint_state_dict(state_dict: Dict[str, torch.Tensor]) -> 
 
 
 class RGBStreamResNet(nn.Module):
-    """ResNet-18 body that returns 512-d global features."""
+    """EfficientNet-B4 body that returns 1792-d global features."""
+
+    feature_dim = 1792
 
     def __init__(self, pretrained: bool = True, dropout: float = 0.2):
         super().__init__()
@@ -44,14 +46,14 @@ class RGBStreamResNet(nn.Module):
                 "torchvision is required for RGBStreamResNet. Install it with: pip install torchvision"
             ) from exc
 
-        resnet18 = getattr(tv_models, "resnet18")
-        weights_enum = getattr(tv_models, "ResNet18_Weights", None)
+        efficientnet_b4 = getattr(tv_models, "efficientnet_b4")
+        weights_enum = getattr(tv_models, "EfficientNet_B4_Weights", None)
 
         if weights_enum is not None:
             weights = weights_enum.DEFAULT if pretrained else None
-            backbone = resnet18(weights=weights)
+            backbone = efficientnet_b4(weights=weights)
         else:
-            backbone = resnet18(pretrained=pretrained)
+            backbone = efficientnet_b4(pretrained=pretrained)
 
         # Keep the global average pooling output and drop the 1000-class head.
         self.backbone = nn.Sequential(*list(backbone.children())[:-1])
@@ -69,7 +71,7 @@ class RGBOnlyClassifier(nn.Module):
         self.backbone = RGBStreamResNet(pretrained=pretrained, dropout=dropout)
         self.classifier = nn.Sequential(
             nn.Dropout(p=dropout),
-            nn.Linear(512, 128),
+            nn.Linear(self.backbone.feature_dim, 128),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout),
             nn.Linear(128, 2),
@@ -90,7 +92,7 @@ if __name__ == "__main__":
 
     model = RGBStreamResNet(pretrained=False).to(device)
     features = model(dummy_rgb)
-    print(f"Feature vector shape: {features.shape}")  # (4, 512)
+    print(f"Feature vector shape: {features.shape}")  # (4, 1792)
 
     clf = RGBOnlyClassifier(pretrained=False).to(device)
     logits = clf(dummy_rgb)

@@ -11,25 +11,27 @@ import torch.nn as nn
 class FusionModel(nn.Module):
     """Fuse RGB and FFT feature embeddings for binary classification."""
 
-    RGB_FEATURE_DIM = 512
-    FFT_FEATURE_DIM = 256
-    FUSED_FEATURE_DIM = RGB_FEATURE_DIM + FFT_FEATURE_DIM
-
     def __init__(
         self,
         rgb_model: nn.Module,
         fft_model: nn.Module,
         freeze_backbones: bool = True,
+        rgb_feature_dim: int | None = None,
+        fft_feature_dim: int | None = None,
     ) -> None:
         super().__init__()
         self.rgb_model = rgb_model
         self.fft_model = fft_model
 
+        self.rgb_feature_dim = rgb_feature_dim or getattr(rgb_model, "feature_dim", 512)
+        self.fft_feature_dim = fft_feature_dim or getattr(fft_model, "feature_dim", 256)
+        self.fused_feature_dim = self.rgb_feature_dim + self.fft_feature_dim
+
         self._rgb_headless_layers = self._build_headless_layers(rgb_model)
         self._fft_headless_layers = self._build_headless_layers(fft_model)
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.FUSED_FEATURE_DIM, 256),
+            nn.Linear(self.fused_feature_dim, 256),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
             nn.Linear(256, 64),
@@ -49,14 +51,14 @@ class FusionModel(nn.Module):
         rgb_features = self._extract_features(
             model=self.rgb_model,
             inputs=rgb_input,
-            expected_dim=self.RGB_FEATURE_DIM,
+            expected_dim=self.rgb_feature_dim,
             headless_layers=self._rgb_headless_layers,
             stream_name="RGB",
         )
         fft_features = self._extract_features(
             model=self.fft_model,
             inputs=fft_input,
-            expected_dim=self.FFT_FEATURE_DIM,
+            expected_dim=self.fft_feature_dim,
             headless_layers=self._fft_headless_layers,
             stream_name="FFT",
         )

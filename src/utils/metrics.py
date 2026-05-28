@@ -115,3 +115,15 @@ def binary_classification_metrics(
         "auc_roc": auc_roc,
         "false_positive_rate": float(false_positive_rate),
     }
+
+
+def compute_metrics(labels, preds, probs):
+    """Backward-compatible wrapper for training code."""
+    labels_array = _to_numpy(labels).astype(np.int64, copy=False)
+    preds_array = _to_numpy(preds).astype(np.int64, copy=False)
+    probs_array = _to_numpy(probs)
+
+    if labels_array.shape[0] != preds_array.shape[0] or labels_array.shape[0] != probs_array.shape[0]:
+        raise ValueError("Labels, predictions, and probabilities must have the same length.")
+
+    return binary_classification_metrics(labels_array, probs_array, threshold=0.5)

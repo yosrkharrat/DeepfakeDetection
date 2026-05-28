@@ -16,7 +16,7 @@ def test_rgb_stream_outputs_512d_features() -> None:
     model = RGBStreamResNet(pretrained=False)
     features = model(torch.rand(2, 3, 224, 224))
 
-    assert features.shape == (2, 512)
+    assert features.shape == (2, 1792)
 
 
 def test_normalize_rgb_checkpoint_state_dict_unwraps_local_classifier_checkpoint() -> None:
@@ -31,7 +31,7 @@ def test_normalize_rgb_checkpoint_state_dict_unwraps_local_classifier_checkpoint
 def test_normalize_rgb_checkpoint_state_dict_drops_external_head() -> None:
     model = RGBStreamResNet(pretrained=False)
     kaggle_like = dict(model.state_dict())
-    kaggle_like["head.0.weight"] = torch.randn(256, 512)
+    kaggle_like["head.0.weight"] = torch.randn(256, 1792)
     kaggle_like["head.0.bias"] = torch.randn(256)
 
     normalized = normalize_rgb_checkpoint_state_dict(kaggle_like)

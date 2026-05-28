@@ -313,7 +313,7 @@ def main() -> None:
             ),
         )
     )
-    freeze_backbones = bool(resolve_arg(args.freeze_backbones, True))
+    freeze_backbones = bool(resolve_arg(args.freeze_backbones, get_nested(config, "training", "freeze_backbones", default=False)))
     lr_step_size = int(resolve_arg(None, get_nested(config, "training", "lr_step_size", default=10)))
     lr_gamma = float(resolve_arg(None, get_nested(config, "training", "lr_gamma", default=0.5)))
 
@@ -324,25 +324,23 @@ def main() -> None:
     fft_checkpoint = resolve_project_path(args.fft_checkpoint) if args.fft_checkpoint is not None else None
     device = torch.device(device_name if torch.cuda.is_available() or device_name == "cpu" else "cpu")
 
-    if rgb_checkpoint is None or fft_checkpoint is None:
-        raise ValueError(
-            "Fusion training requires pretrained RGB and FFT checkpoints. "
-            "Provide both --rgb-checkpoint and --fft-checkpoint."
-        )
-    if not rgb_checkpoint.exists():
-        raise FileNotFoundError(f"RGB checkpoint not found: {rgb_checkpoint}")
+    if fft_checkpoint is None:
+        raise ValueError("Fusion training requires an FFT checkpoint. Provide --fft-checkpoint.")
     if not fft_checkpoint.exists():
         raise FileNotFoundError(f"FFT checkpoint not found: {fft_checkpoint}")
+    if rgb_checkpoint is not None and not rgb_checkpoint.exists():
+        raise FileNotFoundError(f"RGB checkpoint not found: {rgb_checkpoint}")
 
     set_seed(seed)
 
     train_loader = build_dataloader(train_csv, root_dir, image_size, batch_size, num_workers, train=True)
     val_loader = build_dataloader(val_csv, root_dir, image_size, batch_size, num_workers, train=False)
 
-    rgb_model = RGBStreamResNet(pretrained=False)
+    rgb_model = RGBStreamResNet(pretrained=rgb_checkpoint is None)
     fft_model = FFTStreamCNN()
 
-    load_checkpoint(rgb_model, rgb_checkpoint, strict=args.strict_load)
+    if rgb_checkpoint is not None:
+        load_checkpoint(rgb_model, rgb_checkpoint, strict=args.strict_load)
     load_checkpoint(fft_model, fft_checkpoint, strict=args.strict_load)
     if args.fft_preprocessing == "fft2":
         fft_model.set_use_rfft(False)

@@ -4,7 +4,10 @@ import os
 import tempfile
 import time
 
-import cv2
+try:
+    import cv2
+except Exception:  # pragma: no cover - runtime env dependent
+    cv2 = None
 import numpy as np
 from flask import Blueprint, current_app, jsonify, request
 
@@ -36,6 +39,8 @@ def detect():
 
 
 def _handle_image(file, service, t0):
+    if cv2 is None:
+        return jsonify({"error": "OpenCV is not installed on the server. Install opencv-python."}), 500
     data = np.frombuffer(file.read(), dtype=np.uint8)
     image_bgr = cv2.imdecode(data, cv2.IMREAD_COLOR)
     if image_bgr is None:
@@ -59,6 +64,8 @@ def _handle_image(file, service, t0):
 
 
 def _handle_video(file, ext, service, t0):
+    if cv2 is None:
+        return jsonify({"error": "OpenCV is not installed on the server. Install opencv-python."}), 500
     with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
         tmp_path = tmp.name
         file.save(tmp_path)

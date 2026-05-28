@@ -13,6 +13,7 @@ def create_app(
     checkpoint_path: str = "results/checkpoints/fusion_best.pt",
     device: str = "cpu",
     threshold: float = 0.5,
+    mode: str = "fusion",
 ) -> Flask:
     app = Flask(
         __name__,
@@ -25,6 +26,7 @@ def create_app(
         checkpoint_path=checkpoint_path,
         device=device,
         threshold=threshold,
+        mode=mode,
     )
     app.config["INFERENCE_SERVICE"] = service
 
