@@ -22,6 +22,7 @@ from src.models.rgb_stream import RGBStreamResNet, RGBOnlyClassifier
 from src.models.audio_stream import Wav2Vec2AudioClassifier, MFCCCNN
 from src.api.utils import audio_utils
 from src.utils.metrics import probabilities_from_logits
+from src.utils.gradcam import generate_heatmap
 
 
 def _strip_module_prefix(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -335,8 +336,16 @@ class FusionInferenceService:
                         "real": real_probability,
                         "fake": fake_probability,
                     },
+                    "gradcam_heatmap": None,
                 }
             )
+
+        # Generate EigenCAM heatmaps for fake faces (fusion mode only)
+        if self.mode == "fusion" and hasattr(self, "model"):
+            for i, result in enumerate(results):
+                if result["is_fake"]:
+                    tensor_single = rgb_tensors[i].unsqueeze(0).to(self.device)
+                    result["gradcam_heatmap"] = generate_heatmap(self.model, tensor_single, crops_bgr[i])
 
         return results
 

@@ -146,6 +146,8 @@ class FFTStreamCNN(nn.Module):
     The output feeds into the fusion FC classifier alongside the RGB stream.
     """
 
+    feature_dim: int = 256
+
     def __init__(self, dropout: float = 0.3, use_rfft: bool = False):
         super().__init__()
         self.register_buffer("_use_rfft_flag", torch.tensor(bool(use_rfft)), persistent=True)

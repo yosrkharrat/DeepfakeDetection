@@ -14,7 +14,7 @@ def health():
 def info():
     return jsonify({
         "model": "Dual-Stream Fusion (RGB + FFT)",
-        "architecture": "ResNet-18 + FFTStreamCNN → MLP classifier",
+        "architecture": "EfficientNet-B4 + FFTStreamCNN -> MLP fusion classifier",
         "dataset": "FaceForensics++ C23",
         "test_accuracy": 0.9587,
         "test_auc_roc": 0.9951,

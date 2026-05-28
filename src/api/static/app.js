@@ -192,6 +192,7 @@ function showResult(data) {
   if (data.media_type === "image" && data.faces?.length) {
     fallbackNotice.hidden = !data.used_full_frame_fallback;
     drawFaceBoxes(data.faces, data.original_width, data.original_height);
+    renderHeatmaps(data.faces);
   }
 
   if (data.media_type === "video" && data.frame_results?.length) {
@@ -202,6 +203,43 @@ function showResult(data) {
   stateAnalyzing.hidden = true;
   stateResult.hidden    = false;
   resultCard.style.alignItems = "flex-start";
+}
+
+function renderHeatmaps(faces) {
+  const existing = document.getElementById("heatmapSection");
+  if (existing) existing.remove();
+
+  const fakeFaces = faces.filter((f) => f.is_fake && f.gradcam_heatmap);
+  if (!fakeFaces.length) return;
+
+  const section = document.createElement("div");
+  section.id = "heatmapSection";
+  section.style.cssText = "margin-top:20px;";
+
+  const title = document.createElement("p");
+  title.textContent = "Model attention map";
+  title.style.cssText = "font-weight:600;font-size:13px;margin-bottom:8px;color:#374151;";
+  section.appendChild(title);
+
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;flex-wrap:wrap;gap:10px;";
+
+  fakeFaces.forEach((face, idx) => {
+    const item = document.createElement("div");
+    const img = document.createElement("img");
+    img.src = `data:image/jpeg;base64,${face.gradcam_heatmap}`;
+    img.style.cssText = "width:160px;height:160px;object-fit:cover;border:2px solid #dc2626;border-radius:6px;display:block;";
+    img.alt = `Face ${idx + 1} attention map`;
+    const lbl = document.createElement("p");
+    lbl.textContent = `Face ${idx + 1} — regions that influenced FAKE verdict`;
+    lbl.style.cssText = "font-size:11px;color:#6b7280;margin-top:4px;max-width:160px;";
+    item.appendChild(img);
+    item.appendChild(lbl);
+    wrap.appendChild(item);
+  });
+
+  section.appendChild(wrap);
+  stateResult.appendChild(section);
 }
 
 function renderFrameTimeline(frames) {

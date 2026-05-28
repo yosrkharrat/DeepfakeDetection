@@ -1,6 +1,7 @@
 """Flask application factory and entry point."""
 
 import os
+from pathlib import Path
 
 from flask import Flask, render_template
 
@@ -21,6 +22,13 @@ def create_app(
         static_folder="static",
     )
     app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
+
+    if not Path(checkpoint_path).exists():
+        raise FileNotFoundError(
+            f"Checkpoint not found: {checkpoint_path}\n"
+            "Run: python create_dummy_checkpoint.py  (random weights, for testing)\n"
+            "Or set CHECKPOINT env var to the path of your trained .pt file."
+        )
 
     service = FusionInferenceService.from_checkpoint(
         checkpoint_path=checkpoint_path,
