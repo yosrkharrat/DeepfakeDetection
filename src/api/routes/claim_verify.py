@@ -9,6 +9,52 @@ from flask import Blueprint, current_app, jsonify, request
 
 claim_verify_bp = Blueprint("claim_verify", __name__)
 
+MIN_RESEARCH_LEN = 15
+MAX_RESEARCH_LEN = 2000
+
+
+@claim_verify_bp.route("/api/research-claim", methods=["POST"])
+def research_claim():
+    """Run the multi-agent research pipeline on a claim.
+
+    Accepts  { "claim": "..." }
+    Returns  { status, claim, summary, report, sources, elapsed_seconds }
+
+    Note: this endpoint can take 1-3 minutes — the agent does live web research.
+    """
+    data: dict[str, Any] = request.get_json(silent=True) or {}
+    claim_value = data.get("claim")
+
+    if not isinstance(claim_value, str):
+        return jsonify({"status": "error", "message": "Request body must contain a 'claim' field."}), 400
+
+    claim = claim_value.strip()
+    if len(claim) < MIN_RESEARCH_LEN:
+        return jsonify({"status": "error", "message": "Claim too short. Please provide more detail."}), 400
+    if len(claim) > MAX_RESEARCH_LEN:
+        return jsonify({"status": "error", "message": f"Claim too long. Maximum {MAX_RESEARCH_LEN} characters."}), 400
+
+    agent = current_app.config.get("CLAIM_RESEARCH_AGENT")
+    if agent is None:
+        return jsonify({
+            "status": "error",
+            "message": "Research agent unavailable. Make sure Ollama is running with mistral and llama3 pulled.",
+        }), 503
+
+    try:
+        result = agent.verify(claim)
+    except Exception as exc:
+        return jsonify({"status": "error", "message": f"Agent failed: {exc}"}), 500
+
+    return jsonify({
+        "status": "success",
+        "claim": result["claim"],
+        "summary": result["summary"],
+        "report": result["report"],
+        "sources": result["sources"],
+        "elapsed_seconds": result["elapsed_seconds"],
+    })
+
 MIN_CLAIM_LEN = 10
 MAX_CLAIM_LEN = 5000
 MAX_BATCH_SIZE = 20

@@ -10,6 +10,7 @@ from src.api.routes.detect import detect_bp
 from src.api.routes.fake_news import fake_news_bp
 from src.api.routes.health import health_bp
 from src.api.utils.inference import FusionInferenceService
+from src.agents.claim_verifier import ClaimVerifier, is_ollama_available
 from src.models.claim_verify_model import ClaimVerifyDetector
 from src.models.fake_news_model import FakeNewsDetector
 
@@ -97,6 +98,23 @@ def create_app(
             app.logger.warning("Failed to load claim verification model: %s", exc)
     else:
         app.logger.info("CLAIM_VERIFY_CHECKPOINT not set; claim verification endpoint disabled.")
+
+    ollama_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+    if is_ollama_available(ollama_url):
+        try:
+            app.config["CLAIM_RESEARCH_AGENT"] = ClaimVerifier(
+                ollama_base_url=ollama_url,
+                max_iterations=int(os.environ.get("CLAIM_MAX_ITERATIONS", "1")),
+            )
+            app.logger.info("Multi-agent claim verifier loaded (Ollama at %s).", ollama_url)
+        except Exception as exc:
+            app.logger.warning("Failed to load claim research agent: %s", exc)
+    else:
+        app.logger.warning(
+            "Ollama not reachable at %s — /api/research-claim will return 503. "
+            "Start Ollama and restart the server to enable it.",
+            ollama_url,
+        )
 
     app.register_blueprint(health_bp)
     app.register_blueprint(detect_bp)

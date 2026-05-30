@@ -39,6 +39,9 @@ results/
 .DS_Store
 Thumbs.db
 
+# External agent repos (cloned at setup, not committed)
+external/
+
 # Local ad-hoc test images
 test sample*.jpg
 
