@@ -23,6 +23,36 @@ const statsGrid      = document.getElementById("statsGrid");
 const framesSection  = document.getElementById("framesSection");
 const framesTrack    = document.getElementById("framesTrack");
 const resetBtn       = document.getElementById("resetBtn");
+const tabButtons     = document.querySelectorAll(".tab-btn");
+const tabPanels      = document.querySelectorAll(".tab-panel");
+const newsInput      = document.getElementById("newsInput");
+const charCount      = document.getElementById("charCount");
+const analyzeTextBtn = document.getElementById("analyzeTextBtn");
+const textResults    = document.getElementById("textResults");
+const textVerdictCard = document.getElementById("textVerdictCard");
+const textRealBar    = document.getElementById("textRealBar");
+const textFakeBar    = document.getElementById("textFakeBar");
+const textStats      = document.getElementById("textStats");
+const claimInput     = document.getElementById("claimInput");
+const claimCharCount = document.getElementById("claimCharCount");
+const analyzeClaimBtn = document.getElementById("analyzeClaimBtn");
+const claimResults   = document.getElementById("claimResults");
+const claimVerdictCard = document.getElementById("claimVerdictCard");
+const claimSupportBar = document.getElementById("claimSupportBar");
+const claimRefuteBar = document.getElementById("claimRefuteBar");
+const claimNeiBar    = document.getElementById("claimNeiBar");
+const claimStats     = document.getElementById("claimStats");
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    tabButtons.forEach((b) => b.classList.remove("active"));
+    tabPanels.forEach((panel) => { panel.style.display = "none"; });
+    btn.classList.add("active");
+    const target = document.getElementById(`tab-${btn.dataset.tab}`);
+    if (target) target.style.display = "block";
+  });
+});
 
 // ── Upload interactions ───────────────────────────────────────────────────────
 browseBtn.addEventListener("click", () => fileInput.click());
@@ -46,6 +76,77 @@ uploadZone.addEventListener("drop", (e) => {
 });
 
 resetBtn.addEventListener("click", reset);
+
+// ── Fake news text interactions ─────────────────────────────────────────────
+if (newsInput && charCount) {
+  charCount.textContent = String(newsInput.value.length);
+  newsInput.addEventListener("input", () => {
+    charCount.textContent = String(newsInput.value.length);
+  });
+}
+
+if (analyzeTextBtn && newsInput) {
+  analyzeTextBtn.addEventListener("click", async () => {
+    const text = newsInput.value.trim();
+    if (!text) {
+      renderTextError("Please enter some text to analyze.");
+      return;
+    }
+
+    analyzeTextBtn.textContent = "Analyzing...";
+    analyzeTextBtn.disabled = true;
+
+    try {
+      const response = await fetch("/api/detect-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await response.json();
+      renderTextResults(data);
+    } catch (err) {
+      renderTextError("Analysis failed. Please try again.");
+    } finally {
+      analyzeTextBtn.textContent = "Analyze Text";
+      analyzeTextBtn.disabled = false;
+    }
+  });
+}
+
+if (claimInput && claimCharCount) {
+  claimCharCount.textContent = String(claimInput.value.length);
+  claimInput.addEventListener("input", () => {
+    claimCharCount.textContent = String(claimInput.value.length);
+  });
+}
+
+if (analyzeClaimBtn && claimInput) {
+  analyzeClaimBtn.addEventListener("click", async () => {
+    const claim = claimInput.value.trim();
+    if (!claim) {
+      renderClaimError("Please enter a claim to verify.");
+      return;
+    }
+
+    analyzeClaimBtn.textContent = "Verifying...";
+    analyzeClaimBtn.disabled = true;
+
+    try {
+      const response = await fetch("/api/claim-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claim }),
+      });
+      const data = await response.json();
+      renderClaimResults(data);
+    } catch (err) {
+      renderClaimError("Verification failed. Please try again.");
+    } finally {
+      analyzeClaimBtn.textContent = "Verify Claim";
+      analyzeClaimBtn.disabled = false;
+    }
+  });
+}
 
 // ── Core flow ─────────────────────────────────────────────────────────────────
 function handleFile(file) {
@@ -203,6 +304,103 @@ function showResult(data) {
   stateAnalyzing.hidden = true;
   stateResult.hidden    = false;
   resultCard.style.alignItems = "flex-start";
+}
+
+function renderTextResults(data) {
+  if (!data || data.status === "error") {
+    renderTextError(data?.message || "Analysis failed.");
+    return;
+  }
+
+  if (!textResults || !textVerdictCard || !textRealBar || !textFakeBar || !textStats) return;
+
+  textResults.hidden = false;
+  const isFake = data.is_fake;
+  textVerdictCard.className = `verdict-card ${isFake ? "fake" : "real"}`;
+  textVerdictCard.innerHTML = `
+    <div class="verdict-label">${isFake ? "FAKE" : "REAL"}</div>
+    <div class="verdict-confidence">${pct(data.confidence)} confidence</div>
+  `;
+
+  textRealBar.style.width = pct(data.p_real);
+  textRealBar.textContent = `Real ${pct(data.p_real)}`;
+  textFakeBar.style.width = pct(data.p_fake);
+  textFakeBar.textContent = `Fake ${pct(data.p_fake)}`;
+
+  textStats.innerHTML = `
+    <span>Characters analyzed: ${data.text_length}</span>
+    <span>Processing time: ${data.elapsed_ms} ms</span>
+  `;
+}
+
+function renderTextError(message) {
+  if (!textResults || !textVerdictCard || !textStats || !textRealBar || !textFakeBar) return;
+  textResults.hidden = false;
+  textVerdictCard.className = "verdict-card error";
+  textVerdictCard.innerHTML = `
+    <div class="verdict-label">Error</div>
+    <div class="verdict-confidence">${message}</div>
+  `;
+  textRealBar.style.width = "0%";
+  textRealBar.textContent = "";
+  textFakeBar.style.width = "0%";
+  textFakeBar.textContent = "";
+  textStats.innerHTML = "";
+}
+
+function renderClaimResults(data) {
+  if (!data || data.status === "error") {
+    renderClaimError(data?.message || "Verification failed.");
+    return;
+  }
+
+  if (!claimResults || !claimVerdictCard || !claimSupportBar || !claimRefuteBar || !claimNeiBar || !claimStats) {
+    return;
+  }
+
+  claimResults.hidden = false;
+
+  const label = data.label || "NOT_ENOUGH_INFO";
+  const isSupported = label === "SUPPORTED";
+  const isRefuted = label === "REFUTED";
+  const verdictClass = isSupported ? "real" : (isRefuted ? "fake" : "neutral");
+
+  claimVerdictCard.className = `verdict-card ${verdictClass}`;
+  claimVerdictCard.innerHTML = `
+    <div class="verdict-label">${label.replace(/_/g, " ")}</div>
+    <div class="verdict-confidence">${pct(data.confidence)} confidence</div>
+  `;
+
+  claimSupportBar.style.width = pct(data.p_support);
+  claimSupportBar.textContent = `Support ${pct(data.p_support)}`;
+  claimRefuteBar.style.width = pct(data.p_refute);
+  claimRefuteBar.textContent = `Refute ${pct(data.p_refute)}`;
+  claimNeiBar.style.width = pct(data.p_nei);
+  claimNeiBar.textContent = `Unknown ${pct(data.p_nei)}`;
+
+  claimStats.innerHTML = `
+    <span>Characters analyzed: ${data.claim_length}</span>
+    <span>Processing time: ${data.elapsed_ms} ms</span>
+  `;
+}
+
+function renderClaimError(message) {
+  if (!claimResults || !claimVerdictCard || !claimStats || !claimSupportBar || !claimRefuteBar || !claimNeiBar) {
+    return;
+  }
+  claimResults.hidden = false;
+  claimVerdictCard.className = "verdict-card error";
+  claimVerdictCard.innerHTML = `
+    <div class="verdict-label">Error</div>
+    <div class="verdict-confidence">${message}</div>
+  `;
+  claimSupportBar.style.width = "0%";
+  claimSupportBar.textContent = "";
+  claimRefuteBar.style.width = "0%";
+  claimRefuteBar.textContent = "";
+  claimNeiBar.style.width = "0%";
+  claimNeiBar.textContent = "";
+  claimStats.innerHTML = "";
 }
 
 function renderHeatmaps(faces) {

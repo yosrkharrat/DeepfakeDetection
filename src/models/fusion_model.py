@@ -18,6 +18,9 @@ class FusionModel(nn.Module):
         freeze_backbones: bool = True,
         rgb_feature_dim: int | None = None,
         fft_feature_dim: int | None = None,
+        hidden_dims: Sequence[int] = (256, 64),
+        dropout: float = 0.5,
+        num_classes: int = 2,
     ) -> None:
         super().__init__()
         self.rgb_model = rgb_model
@@ -30,14 +33,15 @@ class FusionModel(nn.Module):
         self._rgb_headless_layers = self._build_headless_layers(rgb_model)
         self._fft_headless_layers = self._build_headless_layers(fft_model)
 
-        self.classifier = nn.Sequential(
-            nn.Linear(self.fused_feature_dim, 256),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
-            nn.Linear(256, 64),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 2),
-        )
+        dims = [self.fused_feature_dim, *hidden_dims]
+        layers: list[nn.Module] = []
+        for idx in range(len(dims) - 1):
+            layers.append(nn.Linear(dims[idx], dims[idx + 1]))
+            layers.append(nn.ReLU(inplace=True))
+            if dropout > 0:
+                layers.append(nn.Dropout(p=dropout))
+        layers.append(nn.Linear(dims[-1], num_classes))
+        self.classifier = nn.Sequential(*layers)
 
         self.set_backbone_trainable(trainable=not freeze_backbones)
 

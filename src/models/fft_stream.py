@@ -83,6 +83,13 @@ def normalize_fft_checkpoint_state_dict(
         inferred_rfft: True when the checkpoint looks like the Kaggle
             FFTOnlyClassifier wrapper checkpoint that used rfft2 preprocessing.
     """
+    inferred_rfft = False
+    if "_use_rfft_flag" in state_dict:
+        try:
+            inferred_rfft = bool(state_dict["_use_rfft_flag"].item())
+        except Exception:
+            inferred_rfft = False
+
     if any(key.startswith("backbone.") for key in state_dict):
         backbone_state = {
             key.removeprefix("backbone."): value
@@ -90,9 +97,9 @@ def normalize_fft_checkpoint_state_dict(
             if key.startswith("backbone.")
         }
         has_classifier = any(key.startswith("classifier.") for key in state_dict)
-        return backbone_state, has_classifier
+        return backbone_state, has_classifier or inferred_rfft
 
-    return state_dict, False
+    return state_dict, inferred_rfft
 
 
 # ---------------------------------------------------------------------------

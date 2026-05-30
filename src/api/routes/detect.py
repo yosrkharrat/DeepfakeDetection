@@ -11,6 +11,7 @@ except Exception:  # pragma: no cover - runtime env dependent
 import numpy as np
 from flask import Blueprint, current_app, jsonify, request
 
+from src.api.utils.audio_inference import predict_audio_from_video
 from src.api.utils.validators import validate_upload
 
 detect_bp = Blueprint("detect", __name__)
@@ -70,10 +71,20 @@ def _handle_video(file, ext, service, t0):
         tmp_path = tmp.name
         file.save(tmp_path)
 
+    audio_result = None
+    audio_error = None
+    frame_results = []
+
     try:
-        frame_results = _process_video(tmp_path, service)
-    except Exception as exc:
-        return jsonify({"error": f"Video processing failed: {exc}"}), 500
+        try:
+            frame_results = _process_video(tmp_path, service)
+        except Exception as exc:
+            return jsonify({"error": f"Video processing failed: {exc}"}), 500
+        if hasattr(service, "audio_model"):
+            try:
+                audio_result = predict_audio_from_video(service, tmp_path)
+            except Exception as exc:
+                audio_error = str(exc)
     finally:
         os.unlink(tmp_path)
 
@@ -86,8 +97,26 @@ def _handle_video(file, ext, service, t0):
     confidence = avg_fake if is_fake else (1.0 - avg_fake)
     fake_frame_count = sum(1 for fr in frame_results if fr["is_fake"])
 
+    combined = None
+    if audio_result and "probabilities" in audio_result:
+        weight_visual = float(os.environ.get("AV_WEIGHT_VISUAL", "0.6"))
+        weight_audio = float(os.environ.get("AV_WEIGHT_AUDIO", "0.4"))
+        total = weight_visual + weight_audio
+        if total <= 0.0:
+            total = 1.0
+        p_fake_audio = float(audio_result["probabilities"]["fake"])
+        p_combined = (weight_visual * avg_fake + weight_audio * p_fake_audio) / total
+        combined_is_fake = p_combined >= service.threshold
+        combined_confidence = p_combined if combined_is_fake else (1.0 - p_combined)
+        combined = {
+            "is_fake": bool(combined_is_fake),
+            "confidence": round(float(combined_confidence), 4),
+            "combined_fake_probability": round(float(p_combined), 4),
+            "weights": {"visual": weight_visual, "audio": weight_audio},
+        }
+
     elapsed = time.perf_counter() - t0
-    return jsonify({
+    response = {
         "media_type": "video",
         "is_fake": is_fake,
         "confidence": round(confidence, 4),
@@ -96,10 +125,18 @@ def _handle_video(file, ext, service, t0):
         "fake_frame_count": fake_frame_count,
         "frame_results": frame_results,
         "elapsed_seconds": round(elapsed, 3),
-    })
+    }
+    if audio_result is not None:
+        response["audio"] = audio_result
+    if audio_error is not None:
+        response["audio_error"] = audio_error
+    if combined is not None:
+        response["combined"] = combined
+    return jsonify(response)
 
 
 def _process_video(path: str, service) -> list[dict]:
+    from flask import current_app
     cap = cv2.VideoCapture(path)
     results = []
     frame_idx = 0
@@ -121,8 +158,8 @@ def _process_video(path: str, service) -> list[dict]:
                     "num_faces": result["num_faces"],
                 })
                 sampled += 1
-            except Exception:
-                pass
+            except Exception as exc:
+                current_app.logger.warning("Frame %d skipped: %s", frame_idx, exc)
         frame_idx += 1
 
     cap.release()

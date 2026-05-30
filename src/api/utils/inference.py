@@ -19,10 +19,10 @@ from src.data.face_detector import FaceDetector
 from src.models.fft_stream import FFTStreamCNN, FFTOnlyClassifier
 from src.models.fusion_model import FusionModel
 from src.models.rgb_stream import RGBStreamResNet, RGBOnlyClassifier
-from src.models.audio_stream import Wav2Vec2AudioClassifier, MFCCCNN
+from src.models.audio_model import load_audio_model
 from src.api.utils import audio_utils
 from src.utils.metrics import probabilities_from_logits
-from src.utils.gradcam import generate_heatmap
+from src.api.utils.gradcam import generate_heatmap
 
 
 def _strip_module_prefix(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -124,26 +124,13 @@ def load_model(
     elif mode == "fft":
         model = FFTOnlyClassifier().to(resolved_device)
     elif mode == "audio":
-        # Allow two kinds of audio checkpoints:
-        # - a HuggingFace model id/name (string) -> load Wav2Vec2 wrapper
-        # - a local .pth/.pt checkpoint matching MFCCCNN -> load weights
-        cp = str(checkpoint_path)
-        if Path(cp).exists() and (cp.endswith(".pth") or cp.endswith(".pt")):
-            model = MFCCCNN().to(resolved_device)
-            _load_checkpoint(model, checkpoint_path, strict=strict)
-            model.eval()
-            return model
-        else:
-            # Treat as HF model id
-            wav = Wav2Vec2AudioClassifier.from_pretrained(cp)
-            wav.to(resolved_device)
-            wav.eval()
-            return wav
+        model = load_audio_model(checkpoint_path, device=resolved_device, strict=strict)
+        return model
     elif mode == "ensemble":
         # Not used here; ensemble loading is handled in from_checkpoint
         raise ValueError("Use from_checkpoint with mode='ensemble' to load ensemble models")
     else:
-        raise ValueError("mode must be one of 'fusion', 'rgb', 'fft'")
+        raise ValueError("mode must be one of 'fusion', 'rgb', 'fft', 'audio'")
 
     _load_checkpoint(model, checkpoint_path, strict=strict)
     model.eval()
@@ -160,6 +147,7 @@ class FusionInferenceService:
         image_size: int = 224,
         min_face_size: int = 64,
         threshold: float = 0.5,
+        mode: str = "fusion",
     ) -> None:
         if cv2 is None:
             raise RuntimeError("OpenCV is required for inference. Install with: pip install opencv-python")
@@ -169,7 +157,7 @@ class FusionInferenceService:
         self.device = torch.device(device)
         # model may be a FusionModel, a single-stream classifier, or a tuple
         # (rgb_model, fft_model) when using ensemble mode.
-        self.mode = "fusion"
+        self.mode = mode
         if isinstance(model, tuple) and len(model) == 2:
             self.mode = "ensemble"
             self.rgb_model, self.fft_model = model
@@ -190,6 +178,17 @@ class FusionInferenceService:
                 pass
             self.rgb_model.eval()
             self.fft_model.eval()
+            try:
+                self.audio_model.eval()
+            except Exception:
+                pass
+        elif self.mode == "audio":
+            # Audio-only service
+            self.audio_model = model
+            try:
+                self.audio_model = self.audio_model.to(self.device)
+            except Exception:
+                pass
             try:
                 self.audio_model.eval()
             except Exception:
@@ -250,6 +249,38 @@ class FusionInferenceService:
                 threshold=threshold,
             )
 
+        if mode == "av_ensemble":
+            import os
+
+            rgb_ckpt = os.environ.get("RGB_CHECKPOINT") or str(checkpoint_path)
+            fft_ckpt = os.environ.get("FFT_CHECKPOINT") or str(checkpoint_path)
+            audio_ckpt = os.environ.get("AUDIO_CHECKPOINT")
+            if not audio_ckpt:
+                raise ValueError("AUDIO_CHECKPOINT is required for mode='av_ensemble'")
+
+            rgb_model = load_model(rgb_ckpt, device=device, strict=strict, mode="rgb")
+            fft_model = load_model(fft_ckpt, device=device, strict=strict, mode="fft")
+            audio_model = load_model(audio_ckpt, device=device, strict=strict, mode="audio")
+            return cls(
+                model=(rgb_model, fft_model, audio_model),
+                device=device,
+                image_size=image_size,
+                min_face_size=min_face_size,
+                threshold=threshold,
+                mode="av_ensemble",
+            )
+
+        if mode == "audio":
+            audio_model = load_model(checkpoint_path, device=device, strict=strict, mode="audio")
+            return cls(
+                model=audio_model,
+                device=device,
+                image_size=image_size,
+                min_face_size=min_face_size,
+                threshold=threshold,
+                mode="audio",
+            )
+
         model = load_model(checkpoint_path, device=device, strict=strict, mode=mode)
         return cls(
             model=model,
@@ -257,6 +288,7 @@ class FusionInferenceService:
             image_size=image_size,
             min_face_size=min_face_size,
             threshold=threshold,
+            mode=mode,
         )
 
     def _prepare_tensor(self, crop_bgr: np.ndarray) -> torch.Tensor:

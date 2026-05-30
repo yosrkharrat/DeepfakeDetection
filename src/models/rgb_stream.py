@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib
-from typing import Dict
+from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
@@ -30,45 +30,78 @@ def normalize_rgb_checkpoint_state_dict(state_dict: Dict[str, torch.Tensor]) -> 
     return state_dict
 
 
-class RGBStreamResNet(nn.Module):
-    """EfficientNet-B4 body that returns 1792-d global features."""
+def _load_backbone(backbone_name: str, pretrained: bool) -> Tuple[nn.Module, int]:
+    try:
+        tv_models = importlib.import_module("torchvision.models")
+    except ImportError as exc:
+        raise ImportError(
+            "torchvision is required for RGBStreamResNet. Install it with: pip install torchvision"
+        ) from exc
 
-    feature_dim = 1792
+    name = backbone_name.lower().replace("-", "_")
 
-    def __init__(self, pretrained: bool = True, dropout: float = 0.2):
-        super().__init__()
-        _ = dropout  # Kept for API compatibility with earlier code.
-
-        try:
-            tv_models = importlib.import_module("torchvision.models")
-        except ImportError as exc:
-            raise ImportError(
-                "torchvision is required for RGBStreamResNet. Install it with: pip install torchvision"
-            ) from exc
-
+    if name == "efficientnet_b4":
         efficientnet_b4 = getattr(tv_models, "efficientnet_b4")
         weights_enum = getattr(tv_models, "EfficientNet_B4_Weights", None)
-
         if weights_enum is not None:
             weights = weights_enum.DEFAULT if pretrained else None
             backbone = efficientnet_b4(weights=weights)
         else:
             backbone = efficientnet_b4(pretrained=pretrained)
+        feature_dim = backbone.classifier[1].in_features
+        trunk = nn.Sequential(*list(backbone.children())[:-1])
+        return trunk, int(feature_dim)
 
-        # Keep the global average pooling output and drop the 1000-class head.
-        self.backbone = nn.Sequential(*list(backbone.children())[:-1])
+    if name == "convnext_tiny":
+        convnext_tiny = getattr(tv_models, "convnext_tiny")
+        weights_enum = getattr(tv_models, "ConvNeXt_Tiny_Weights", None)
+        if weights_enum is not None:
+            weights = weights_enum.DEFAULT if pretrained else None
+            backbone = convnext_tiny(weights=weights)
+        else:
+            backbone = convnext_tiny(pretrained=pretrained)
+        feature_dim = backbone.classifier[-1].in_features
+        trunk = nn.Sequential(backbone.features, backbone.avgpool)
+        return trunk, int(feature_dim)
+
+    if name == "resnet50":
+        resnet50 = getattr(tv_models, "resnet50")
+        weights_enum = getattr(tv_models, "ResNet50_Weights", None)
+        if weights_enum is not None:
+            weights = weights_enum.DEFAULT if pretrained else None
+            backbone = resnet50(weights=weights)
+        else:
+            backbone = resnet50(pretrained=pretrained)
+        feature_dim = backbone.fc.in_features
+        trunk = nn.Sequential(*list(backbone.children())[:-1])
+        return trunk, int(feature_dim)
+
+    raise ValueError(f"Unsupported backbone_name: {backbone_name}")
+
+
+class RGBStreamResNet(nn.Module):
+    """RGB backbone that returns global feature vectors."""
+
+    def __init__(self, pretrained: bool = True, dropout: float = 0.2, backbone_name: str = "efficientnet_b4"):
+        super().__init__()
+        _ = dropout  # Kept for API compatibility with earlier code.
+
+        self.backbone_name = backbone_name
+        self.backbone, self.feature_dim = _load_backbone(backbone_name, pretrained)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.backbone(x)
-        return torch.flatten(features, start_dim=1)
+        if features.dim() > 2:
+            features = torch.flatten(features, start_dim=1)
+        return features
 
 
 class RGBOnlyClassifier(nn.Module):
     """Optional RGB-only baseline classifier for ablations."""
 
-    def __init__(self, pretrained: bool = True, dropout: float = 0.2):
+    def __init__(self, pretrained: bool = True, dropout: float = 0.2, backbone_name: str = "efficientnet_b4"):
         super().__init__()
-        self.backbone = RGBStreamResNet(pretrained=pretrained, dropout=dropout)
+        self.backbone = RGBStreamResNet(pretrained=pretrained, dropout=dropout, backbone_name=backbone_name)
         self.classifier = nn.Sequential(
             nn.Dropout(p=dropout),
             nn.Linear(self.backbone.feature_dim, 128),

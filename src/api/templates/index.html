@@ -24,6 +24,14 @@
 
     <main class="main">
 
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="visual">Visual</button>
+        <button class="tab-btn" data-tab="text">Fake News</button>
+        <button class="tab-btn" data-tab="claim">Claim Verify</button>
+      </div>
+
+      <div class="tab-panel" id="tab-visual">
+
       <!-- ── Upload zone ── -->
       <section class="upload-section" id="uploadSection">
         <div class="upload-zone" id="uploadZone">
@@ -115,6 +123,75 @@
 
         <button class="reset-btn" id="resetBtn">↩ Analyse another file</button>
       </section>
+
+      </div>
+
+      <div class="tab-panel" id="tab-text" style="display:none;">
+        <section class="text-section">
+          <div class="card text-card">
+            <div class="card-header">
+              <h3>Fake News Detector</h3>
+              <span class="file-meta">Text input</span>
+            </div>
+            <div class="text-body">
+              <p class="text-subtitle">Paste a headline or full article to analyze.</p>
+              <textarea
+                id="newsInput"
+                class="text-input"
+                rows="8"
+                placeholder="Paste a headline or article here..."
+              ></textarea>
+              <div class="text-meta">
+                <span id="charCount">0</span> / 10000 characters
+              </div>
+              <button id="analyzeTextBtn" class="action-btn">Analyze Text</button>
+            </div>
+          </div>
+
+          <div class="card text-result-card" id="textResults" hidden>
+            <div id="textVerdictCard" class="verdict-card"></div>
+            <div class="probability-bar">
+              <div id="textRealBar" class="bar real-bar"></div>
+              <div id="textFakeBar" class="bar fake-bar"></div>
+            </div>
+            <div id="textStats" class="stats-panel"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="tab-panel" id="tab-claim" style="display:none;">
+        <section class="text-section">
+          <div class="card text-card">
+            <div class="card-header">
+              <h3>Claim Verification</h3>
+              <span class="file-meta">Claim input</span>
+            </div>
+            <div class="text-body">
+              <p class="text-subtitle">Paste a factual claim to verify.</p>
+              <textarea
+                id="claimInput"
+                class="text-input"
+                rows="6"
+                placeholder="Paste a claim here..."
+              ></textarea>
+              <div class="text-meta">
+                <span id="claimCharCount">0</span> / 5000 characters
+              </div>
+              <button id="analyzeClaimBtn" class="action-btn">Verify Claim</button>
+            </div>
+          </div>
+
+          <div class="card text-result-card" id="claimResults" hidden>
+            <div id="claimVerdictCard" class="verdict-card"></div>
+            <div class="probability-bar">
+              <div id="claimSupportBar" class="bar real-bar"></div>
+              <div id="claimRefuteBar" class="bar fake-bar"></div>
+              <div id="claimNeiBar" class="bar neutral-bar"></div>
+            </div>
+            <div id="claimStats" class="stats-panel"></div>
+          </div>
+        </section>
+      </div>
 
     </main>
 
