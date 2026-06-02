@@ -19,6 +19,7 @@ const labelConfig = {
   SUPPORTED:         { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
   REFUTED:           { icon: AlertTriangle, color: "text-red-600",    bg: "bg-red-50 border-red-100" },
   "NOT ENOUGH INFO": { icon: MinusCircle,  color: "text-zinc-600", bg: "bg-zinc-50 border-zinc-200" },
+  NEI:                { icon: MinusCircle,  color: "text-zinc-600", bg: "bg-zinc-50 border-zinc-200" },
 };
 
 export function ClaimsPanel() {
@@ -162,7 +163,7 @@ export function ClaimsPanel() {
             </div>
             <div className="p-5 space-y-4">
               {(() => {
-                const cfg = labelConfig[result.label];
+                const cfg = labelConfig[result.label] ?? labelConfig.NEI;
                 const Icon = cfg.icon;
                 return (
                   <div className={cn("flex items-center gap-3 p-4 rounded-xl border", cfg.bg)}>
