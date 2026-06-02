@@ -71,7 +71,7 @@ export function Hero() {
                 transition={{ duration: 0.6, delay: 0.12 }}
                 className="mt-5 text-lg text-zinc-500 max-w-xl text-center md:text-left"
               >
-                DeepGuard combines a dual-stream CNN, NLP, and live fact-checking to detect deepfakes,
+                Reality Check combines a dual-stream CNN, NLP, and live fact-checking to detect deepfakes,
                 fake news, and unverified claims — all in one place.
               </motion.p>
 

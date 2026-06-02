@@ -12,13 +12,13 @@ export function Sidebar() {
     <aside className="w-[220px] h-full bg-zinc-50 border-r border-zinc-200 flex flex-col shrink-0">
 
       {/* Logo */}
-      <div className="p-3 border-b border-zinc-200">
-        <div className="flex items-center gap-2.5 px-2 py-1.5">
+      <div className="h-14 flex items-center px-4 border-b border-zinc-200 shrink-0">
+        <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center shrink-0">
             <Shield className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-zinc-900 font-semibold text-sm">DeepGuard</span>
-        </div>
+          <span className="text-zinc-900 font-semibold text-sm">Reality Check</span>
+        </Link>
       </div>
 
       {/* Search */}
@@ -48,18 +48,6 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1" />
-
-      {/* Footer card */}
-      <div className="p-3 border-t border-zinc-200">
-        <div className="px-2 py-2 rounded-md bg-white border border-zinc-200">
-          <p className="text-[10px] text-zinc-400 mb-1">Model checkpoint</p>
-          <p className="text-xs font-medium text-zinc-700 font-mono truncate">fusion_best.pt</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-[10px] text-zinc-500">Ready · AUC 0.9951</span>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

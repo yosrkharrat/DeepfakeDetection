@@ -12,7 +12,7 @@ const PAGE_TITLES: Record<string, { title: string; sub: string }> = {
 
 export function Topbar() {
   const pathname = usePathname();
-  const page = PAGE_TITLES[pathname] ?? { title: "DeepGuard", sub: "" };
+  const page = PAGE_TITLES[pathname] ?? { title: "Reality Check", sub: "" };
 
   return (
     <div className="h-14 border-b border-zinc-200 bg-white flex items-center px-8 shrink-0">

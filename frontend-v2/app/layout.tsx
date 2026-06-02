@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "DeepGuard — AI Deepfake Detection",
+  title: "Reality Check — AI Deepfake Detection",
   description: "Multi-modal deepfake detection: visual, text, and claim verification powered by dual-stream CNN + FFT.",
 };
 

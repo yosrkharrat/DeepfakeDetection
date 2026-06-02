@@ -15,14 +15,10 @@ export function CTASection() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-          <a href="mailto:raed.saidi@insat.ucar.tn"
-            className="w-full sm:w-auto px-5 py-2.5 border border-zinc-300 text-zinc-700 font-medium rounded-lg hover:bg-zinc-50 transition-colors text-sm text-center">
-            Contact us
-          </a>
           <Link href="/dashboard"
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 transition-colors text-sm">
             <Shield className="w-4 h-4" />
-            Open DeepGuard
+            Open Reality Check
           </Link>
         </div>
       </div>
