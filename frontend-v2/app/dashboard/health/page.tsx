@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 type EndpointStatus = {
   name: string;
@@ -14,11 +15,11 @@ type EndpointStatus = {
 };
 
 const ENDPOINTS: Omit<EndpointStatus, "status" | "latency" | "message">[] = [
-  { name: "Health Check",         url: "http://localhost:5001/api/health",        method: "GET" },
-  { name: "Visual Detect",        url: "http://localhost:5001/api/detect",        method: "POST" },
-  { name: "Text Detection",       url: "http://localhost:5001/api/detect-text",   method: "POST", body: { text: "ping" } },
-  { name: "Claim Verification",   url: "http://localhost:5001/api/claim-verify",  method: "POST", body: { claim: "ping" } },
-  { name: "Research Agent",       url: "http://localhost:5001/api/research-claim", method: "POST", body: { claim: "ping" } },
+  { name: "Health Check",         url: apiUrl("/api/health"),        method: "GET" },
+  { name: "Visual Detect",        url: apiUrl("/api/detect"),        method: "POST" },
+  { name: "Text Detection",       url: apiUrl("/api/detect-text"),   method: "POST", body: { text: "ping" } },
+  { name: "Claim Verification",   url: apiUrl("/api/claim-verify"),  method: "POST", body: { claim: "ping" } },
+  { name: "Research Agent",       url: apiUrl("/api/research-claim"), method: "POST", body: { claim: "ping" } },
 ];
 
 export default function HealthPage() {
@@ -63,7 +64,7 @@ export default function HealthPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-zinc-900">API Health</h2>
-          <p className="text-sm text-zinc-400 mt-1">Flask backend at localhost:5001</p>
+          <p className="text-sm text-zinc-400 mt-1">Next.js proxies /api/* to the Flask backend on port 5000</p>
         </div>
         <button
           onClick={checkAll}
@@ -106,7 +107,7 @@ export default function HealthPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-800">{ep.name}</p>
-                <p className="text-xs text-zinc-400 font-mono truncate">{ep.method} {ep.url.replace("http://localhost:5001", "")}</p>
+                <p className="text-xs text-zinc-400 font-mono truncate">{ep.method} {new URL(ep.url, "http://localhost").pathname}</p>
                 {ep.message && <p className="text-xs text-red-400 mt-0.5">{ep.message}</p>}
               </div>
               {ep.latency != null && (

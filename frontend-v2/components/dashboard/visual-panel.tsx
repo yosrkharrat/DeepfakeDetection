@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, RefreshCw, AlertTriangle, CheckCircle2, Copy, Check, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/api";
 import { ConfidenceGauge } from "./confidence-gauge";
 import { ResultSkeleton } from "./skeleton";
 import { historyStore } from "./session-history";
@@ -58,7 +59,7 @@ export function VisualPanel() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("http://localhost:5001/api/detect", { method: "POST", body: fd });
+      const res = await fetch(apiUrl("/api/detect"), { method: "POST", body: fd });
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `Server error ${res.status}`); }
       const data: DetectResult = await res.json();
 

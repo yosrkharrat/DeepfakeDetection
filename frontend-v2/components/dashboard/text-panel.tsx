@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Copy, Check, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/api";
 import { TextResultSkeleton } from "./skeleton";
 import { historyStore } from "./session-history";
 
@@ -37,7 +38,7 @@ export function TextPanel() {
       if (batchMode) {
         const texts = text.split("---").map((t) => t.trim()).filter((t) => t.length >= 20);
         if (texts.length === 0) throw new Error("No valid segments. Separate texts with ---");
-        const res = await fetch("http://localhost:5001/api/detect-text/batch", {
+        const res = await fetch(apiUrl("/api/detect-text/batch"), {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texts }),
         });
         const j = await res.json();
@@ -45,7 +46,7 @@ export function TextPanel() {
         setBatchResults(j.results);
         toast.success(`Batch complete`, { description: `${j.fake_count} fake, ${j.real_count} real out of ${j.total}` });
       } else {
-        const res = await fetch("http://localhost:5001/api/detect-text", {
+        const res = await fetch(apiUrl("/api/detect-text"), {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
         });
         const j = await res.json();

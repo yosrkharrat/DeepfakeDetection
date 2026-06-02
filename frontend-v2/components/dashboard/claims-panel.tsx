@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle2, MinusCircle, ChevronDown, ChevronUp, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { apiUrl } from "@/lib/api";
 import { TextResultSkeleton } from "./skeleton";
 import { historyStore } from "./session-history";
 
@@ -46,7 +47,7 @@ export function ClaimsPanel() {
     try {
       const body: Record<string, string> = { claim };
       if (evidence.trim()) body.evidence = evidence;
-      const res = await fetch("http://localhost:5001/api/claim-verify", {
+      const res = await fetch(apiUrl("/api/claim-verify"), {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
       const j = await res.json();
@@ -70,7 +71,7 @@ export function ClaimsPanel() {
     setResearchLoading(true); setError(null);
     toast.info("Research started", { description: "Live web research in progress — takes 1–3 minutes…" });
     try {
-      const res = await fetch("http://localhost:5001/api/research-claim", {
+      const res = await fetch(apiUrl("/api/research-claim"), {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ claim }),
       });
       const j = await res.json();
