@@ -51,8 +51,8 @@ export function ModelSection() {
           viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.3 }}
           className="mb-20"
         >
-          <div style={{ perspective: "900px" }}>
-            <div style={{ transform: "rotateX(8deg)", transformOrigin: "top" }}>
+          <div>
+            <div>
               <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8">
                 <div className="flex items-center gap-4 justify-center flex-wrap">
 
