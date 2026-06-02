@@ -18,7 +18,7 @@ from src.data.augmentation import get_eval_augmentation
 from src.data.face_detector import FaceDetector
 from src.models.fft_stream import FFTStreamCNN, FFTOnlyClassifier
 from src.models.fusion_model import FusionModel
-from src.models.rgb_stream import RGBStreamResNet, RGBOnlyClassifier
+from src.models.rgb_stream import RGBStreamResNet, RGBOnlyClassifier, ResNet18Classifier
 from src.models.audio_model import load_audio_model
 from src.api.utils import audio_utils
 from src.utils.metrics import probabilities_from_logits
@@ -32,7 +32,7 @@ def _strip_module_prefix(state_dict: dict[str, torch.Tensor]) -> dict[str, torch
 
 
 def _load_checkpoint(model: nn.Module, checkpoint_path: str | Path, strict: bool = True) -> None:
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     if isinstance(checkpoint, dict):
         for key in ("state_dict", "model_state_dict", "model", "weights"):
             candidate = checkpoint.get(key)
@@ -120,7 +120,18 @@ def load_model(
             freeze_backbones=True,
         ).to(resolved_device)
     elif mode == "rgb":
-        model = RGBOnlyClassifier(pretrained=False).to(resolved_device)
+        # Auto-detect ResNet18 vs EfficientNet-B4 from checkpoint key structure
+        _ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        if isinstance(_ckpt, dict):
+            for _k in ("state_dict", "model_state_dict", "model", "weights"):
+                if _k in _ckpt and isinstance(_ckpt[_k], dict):
+                    _ckpt = _ckpt[_k]
+                    break
+        _ckpt_keys = list(_ckpt.keys()) if isinstance(_ckpt, dict) else []
+        if any(k.startswith("head.") for k in _ckpt_keys) and any("backbone.4" in k for k in _ckpt_keys):
+            model = ResNet18Classifier().to(resolved_device)
+        else:
+            model = RGBOnlyClassifier(pretrained=False).to(resolved_device)
     elif mode == "fft":
         model = FFTOnlyClassifier().to(resolved_device)
     elif mode == "audio":

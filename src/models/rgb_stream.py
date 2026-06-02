@@ -115,6 +115,35 @@ class RGBOnlyClassifier(nn.Module):
         return self.classifier(features)
 
 
+class ResNet18Classifier(nn.Module):
+    """ResNet-18 backbone with a 2-class head.
+
+    Matches the checkpoint layout saved by rgb-training notebooks:
+        backbone = nn.Sequential(*resnet18.children()[:-1])
+        head     = Sequential(Flatten, Dropout, Linear(512,256), ReLU, Dropout, Linear(256,2))
+    """
+
+    def __init__(self, dropout: float = 0.3):
+        super().__init__()
+        try:
+            tv_models = importlib.import_module("torchvision.models")
+        except ImportError as exc:
+            raise ImportError("torchvision is required for ResNet18Classifier") from exc
+        resnet = tv_models.resnet18(weights=None)
+        self.backbone = nn.Sequential(*list(resnet.children())[:-1])
+        self.head = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(p=0.5),
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=dropout),
+            nn.Linear(256, 2),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.backbone(x))
+
+
 if __name__ == "__main__":
     print("=== RGB Stream sanity check ===\n")
 

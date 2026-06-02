@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, render_template
+from flask import Flask
 
 from src.api.routes.claim_verify import claim_verify_bp
 from src.api.routes.detect import detect_bp
@@ -21,11 +21,7 @@ def create_app(
     threshold: float = 0.5,
     mode: str = "fusion",
 ) -> Flask:
-    app = Flask(
-        __name__,
-        template_folder="templates",
-        static_folder="static",
-    )
+    app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200 MB upload limit
 
     @app.after_request
@@ -55,6 +51,9 @@ def create_app(
         default_path = Path("results/checkpoints/fake_news_model")
         if default_path.exists():
             fake_news_checkpoint = str(default_path)
+        else:
+            # Public HF model — downloaded and cached on first run
+            fake_news_checkpoint = "mrm8488/bert-tiny-finetuned-fake-news-detection"
     if fake_news_checkpoint:
         fake_news_device = os.environ.get("FAKE_NEWS_DEVICE", device)
         use_hf_inference = os.environ.get("FAKE_NEWS_USE_HF_INFERENCE", "0") in {"1", "true", "True"}
@@ -82,6 +81,9 @@ def create_app(
         default_path = Path("results/checkpoints/claim_verify_model")
         if default_path.exists():
             claim_verify_checkpoint = str(default_path)
+        else:
+            # Public NLI model — downloaded and cached on first run
+            claim_verify_checkpoint = "cross-encoder/nli-deberta-v3-small"
     if claim_verify_checkpoint:
         claim_verify_device = os.environ.get("CLAIM_VERIFY_DEVICE", device)
         use_hf_inference = os.environ.get("CLAIM_VERIFY_USE_HF_INFERENCE", "0") in {"1", "true", "True"}
@@ -127,10 +129,6 @@ def create_app(
     app.register_blueprint(detect_bp)
     app.register_blueprint(fake_news_bp)
     app.register_blueprint(claim_verify_bp)
-
-    @app.route("/")
-    def index():
-        return render_template("index.html")
 
     return app
 

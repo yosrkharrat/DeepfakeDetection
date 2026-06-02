@@ -51,35 +51,52 @@ def _make_stub(name: str, path: Path) -> types.ModuleType:
 # 1 — Backup & clear our src modules
 _our_src_backup: dict = {k: v for k, v in sys.modules.items()
                          if k == "src" or k.startswith("src.")}
-for _k in list(_our_src_backup):
-    del sys.modules[_k]
+_build_graph = None
+_AgentConfig = None
+_agent_load_error: str = ""
 
-# 2 — Add agent root to sys.path (needed for config, langgraph, etc.)
-if str(_AGENT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_AGENT_ROOT))
+try:
+    for _k in list(_our_src_backup):
+        del sys.modules[_k]
 
-# 3 — Register stub packages (no __init__.py will run)
-_make_stub("src",          _AGENT_ROOT / "src")
-_make_stub("src.agents",   _AGENT_ROOT / "src" / "agents")
-_make_stub("agents",       _AGENT_ROOT / "agents")
+    if not _AGENT_ROOT.exists():
+        raise FileNotFoundError(
+            f"Multi-agent system not found at {_AGENT_ROOT}. "
+            "Run: git submodule update --init --recursive"
+        )
 
-# 4 — Load each compatibility shim directly (simple re-export files,
-#     each does `from src.agents.X import Y` — no circular deps)
-for _name in ("state", "planner", "researcher", "critic", "writer", "eval"):
-    _shim_path = _AGENT_ROOT / "agents" / f"{_name}.py"
-    if _shim_path.exists():
-        _load_file(f"agents.{_name}", _shim_path)
+    # 2 — Add agent root to sys.path (needed for config, langgraph, etc.)
+    if str(_AGENT_ROOT) not in sys.path:
+        sys.path.insert(0, str(_AGENT_ROOT))
 
-# 5 — Load the actual graph module by file path
-#     All `from agents.X import Y` inside it now resolve from step 4
-_graph_mod = _load_file("src.agents.graph", _AGENT_ROOT / "src" / "agents" / "graph.py")
-_build_graph = _graph_mod.build_graph  # type: ignore[attr-defined]
+    # 3 — Register stub packages (no __init__.py will run)
+    _make_stub("src",          _AGENT_ROOT / "src")
+    _make_stub("src.agents",   _AGENT_ROOT / "src" / "agents")
+    _make_stub("agents",       _AGENT_ROOT / "agents")
 
-# 6 — Load config (no conflicts)
-from config import PipelineConfig as _AgentConfig  # noqa: E402
+    # 4 — Load each compatibility shim directly (simple re-export files,
+    #     each does `from src.agents.X import Y` — no circular deps)
+    for _name in ("state", "planner", "researcher", "critic", "writer", "eval"):
+        _shim_path = _AGENT_ROOT / "agents" / f"{_name}.py"
+        if _shim_path.exists():
+            _load_file(f"agents.{_name}", _shim_path)
 
-# 7 — Restore our project's src.* modules
-sys.modules.update(_our_src_backup)
+    # 5 — Load the actual graph module by file path
+    #     All `from agents.X import Y` inside it now resolve from step 4
+    _graph_mod = _load_file("src.agents.graph", _AGENT_ROOT / "src" / "agents" / "graph.py")
+    _build_graph = _graph_mod.build_graph  # type: ignore[attr-defined]
+
+    # 6 — Load config (no conflicts)
+    from config import PipelineConfig as _AgentConfig  # noqa: E402
+
+except Exception as _agent_exc:
+    _agent_load_error = str(_agent_exc)
+    _build_graph = None
+    _AgentConfig = None
+
+finally:
+    # 7 — Always restore our project's src.* modules (even on failure)
+    sys.modules.update(_our_src_backup)
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +162,11 @@ class ClaimVerifier:
         ollama_base_url: str = "http://localhost:11434",
         max_iterations: int = 1,
     ) -> None:
+        if _build_graph is None or _AgentConfig is None:
+            raise RuntimeError(
+                f"Multi-agent system unavailable: {_agent_load_error}. "
+                "Clone the submodule with: git submodule update --init --recursive"
+            )
         config = _AgentConfig(
             planner_model="mistral",
             researcher_model="mistral",
