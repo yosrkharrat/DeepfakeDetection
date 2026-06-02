@@ -6,7 +6,7 @@ const steps = [
   {
     step: "01",
     title: "Upload or paste",
-    desc: "Drop an image, video, news article, or factual claim into DeepGuard.",
+    desc: "Drop an image, video, news article, or factual claim into Reality Check.",
     visual: (
       <div className="bg-white border border-zinc-200 rounded-xl p-4">
         <div className="border-2 border-dashed border-zinc-200 rounded-lg py-5 flex flex-col items-center gap-2">

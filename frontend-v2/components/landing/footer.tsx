@@ -11,16 +11,12 @@ export function Footer() {
               <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center shrink-0">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="text-zinc-900 font-semibold text-sm">DeepGuard</span>
+              <span className="text-zinc-900 font-semibold text-sm">Reality Check</span>
             </div>
             <p className="text-zinc-400 text-xs leading-relaxed max-w-xs">
-              End-of-term project · INSAT · AI deepfake & misinformation detection powered by
+              AI deepfake & misinformation detection powered by
               dual-stream CNN fusion trained on FaceForensics++ C23.
             </p>
-            <a href="mailto:raed.saidi@insat.ucar.tn"
-              className="text-zinc-500 hover:text-zinc-700 text-sm mt-4 block transition-colors">
-              raed.saidi@insat.ucar.tn
-            </a>
           </div>
 
           {/* Detection */}
@@ -59,7 +55,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-400 text-xs">© 2026 DeepGuard. End-of-term project.</p>
+          <p className="text-zinc-400 text-xs">© 2026 Reality Check.</p>
           <p className="text-zinc-400 text-xs">
             Accuracy 95.87% · AUC-ROC 0.9951 · Trained on 32,898 face crops
           </p>

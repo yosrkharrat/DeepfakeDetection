@@ -32,7 +32,7 @@ export function Navbar() {
           <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center shrink-0">
             <Shield className="w-4 h-4 text-white" />
           </div>
-          <span className="text-zinc-900 font-semibold text-sm">DeepGuard</span>
+          <span className="text-zinc-900 font-semibold text-sm">Reality Check</span>
         </div>
 
         {/* Desktop links */}
@@ -52,7 +52,7 @@ export function Navbar() {
           </Link>
           <Link href="/dashboard"
             className="text-sm text-white bg-brand hover:bg-brand/90 px-3.5 py-1.5 rounded-lg transition-colors font-medium">
-            Try DeepGuard
+            Try Reality Check
           </Link>
         </div>
 
@@ -74,7 +74,7 @@ export function Navbar() {
           <div className="pt-2 border-t border-zinc-100">
             <Link href="/dashboard" onClick={() => setOpen(false)}
               className="block w-fit text-sm text-white bg-brand hover:bg-brand/90 px-4 py-2 rounded-lg font-medium transition-colors">
-              Try DeepGuard
+              Try Reality Check
             </Link>
           </div>
         </div>

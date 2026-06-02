@@ -143,7 +143,7 @@ export function FeatureCards() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="max-w-sm text-zinc-500 leading-relaxed mt-2"
           >
-            DeepGuard handles visual media, written content, and factual claims — each backed by
+            Reality Check handles visual media, written content, and factual claims — each backed by
             a dedicated AI model trained on real-world data.
           </motion.p>
         </div>
