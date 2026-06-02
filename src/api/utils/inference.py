@@ -304,9 +304,8 @@ class FusionInferenceService:
 
     def _prepare_tensor(self, crop_bgr: np.ndarray) -> torch.Tensor:
         crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
-        transformed = self.transform(image=crop_rgb)
-        image_hwc = transformed["image"] if isinstance(transformed, dict) else transformed
-        return _image_to_tensor(image_hwc)
+        resized = cv2.resize(crop_rgb, (self.image_size, self.image_size), interpolation=cv2.INTER_AREA)
+        return _image_to_tensor(resized)
 
     def _predict_crops(
         self,
@@ -328,7 +327,13 @@ class FusionInferenceService:
             fft_tensors.append(_image_to_tensor(crop_rgb))
 
         fft_batch = torch.stack(fft_tensors).to(self.device, non_blocking=True)
-
+        # DEBUG - remove after testing
+        import torchvision.transforms as T
+        from PIL import Image as PILImage
+        debug_tensor = rgb_batch[0].cpu()
+        print(f"DEBUG tensor shape: {debug_tensor.shape}")
+        print(f"DEBUG tensor min/max: {debug_tensor.min():.3f} / {debug_tensor.max():.3f}")
+        print(f"DEBUG tensor mean: {debug_tensor.mean():.3f}")
         with torch.no_grad():
             # Compute logits for all supported modes; apply temperature
             # scaling to logits before converting to probabilities.
