@@ -15,6 +15,7 @@ type DetectResult = {
   media_type: "image" | "video"; is_fake: boolean; confidence: number; num_faces?: number;
   avg_fake_probability?: number; fake_frame_count?: number; num_frames_analyzed?: number;
   frame_results?: FrameResult[]; elapsed_seconds: number;
+  faces?: { is_fake: boolean; gradcam_heatmap: string | null }[];
 };
 
 const MAX_VIDEO_FRAMES = 16;
@@ -248,7 +249,25 @@ export function VisualPanel() {
                         </div>
                       )}
                     </div>
-
+                      {/* GradCAM Heatmap */}
+{thresholdedResult.is_fake && thresholdedResult.faces?.some(f => f.gradcam_heatmap) && (
+  <div>
+    <p className="text-xs text-zinc-400 mb-2">Explainability heatmap</p>
+    <div className="grid grid-cols-2 gap-2">
+      {thresholdedResult.faces
+        ?.filter(f => f.is_fake && f.gradcam_heatmap)
+        .map((f, i) => (
+          <img
+            key={i}
+            src={`data:image/jpeg;base64,${f.gradcam_heatmap}`}
+            alt={`Face ${i + 1} heatmap`}
+            className="rounded-lg w-full object-contain border border-zinc-200"
+          />
+        ))}
+    </div>
+    <p className="text-[10px] text-zinc-400 mt-1">Red regions indicate manipulated areas detected by EigenCAM</p>
+  </div>
+)}
                     {/* Frame timeline */}
                     {thresholdedResult.frame_results && thresholdedResult.frame_results.length > 0 && (
                       <div>

@@ -389,12 +389,14 @@ class FusionInferenceService:
             )
 
         # Generate EigenCAM heatmaps for fake faces (fusion mode only)
-        if self.mode == "fusion" and hasattr(self, "model"):
+        if self.mode in ("fusion", "rgb") and hasattr(self, "model"):
             for i, result in enumerate(results):
+                print(f"DEBUG gradcam: mode={self.mode}, is_fake={result['is_fake']}")
                 if result["is_fake"]:
                     tensor_single = rgb_tensors[i].unsqueeze(0).to(self.device)
-                    result["gradcam_heatmap"] = generate_heatmap(self.model, tensor_single, crops_bgr[i])
-
+                    heatmap = generate_heatmap(self.model, tensor_single, crops_bgr[i])
+                    print(f"DEBUG gradcam result: {heatmap is not None}")
+                    result["gradcam_heatmap"] = heatmap
         return results
 
     def predict_image_array(self, image_bgr: np.ndarray) -> dict[str, Any]:
@@ -519,3 +521,4 @@ class FusionInferenceService:
             "visual": visual_out,
             "audio": audio_out,
         }
+

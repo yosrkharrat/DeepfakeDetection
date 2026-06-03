@@ -13,14 +13,43 @@ const MAX_CLAIM = 5000;
 const MAX_EVIDENCE = 2000;
 
 type ClaimResult = { label: "SUPPORTED" | "REFUTED" | "NOT ENOUGH INFO"; confidence: number; p_support: number; p_refute: number; p_nei: number; elapsed_ms: number };
-type ResearchResult = { claim: string; summary: string; report: string; sources: string[]; elapsed_seconds: number };
+type ResearchResult = { claim: string; summary: string; report: string; sources: any[]; elapsed_seconds: number };
 
-const labelConfig = {
+const labelConfig: Record<string, { icon: any; color: string; bg: string }> = {
   SUPPORTED:         { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
   REFUTED:           { icon: AlertTriangle, color: "text-red-600",    bg: "bg-red-50 border-red-100" },
-  "NOT ENOUGH INFO": { icon: MinusCircle,  color: "text-zinc-600", bg: "bg-zinc-50 border-zinc-200" },
-  NEI:                { icon: MinusCircle,  color: "text-zinc-600", bg: "bg-zinc-50 border-zinc-200" },
+  "NOT ENOUGH INFO": { icon: MinusCircle,  color: "text-zinc-600",   bg: "bg-zinc-50 border-zinc-200" },
+  NEI:               { icon: MinusCircle,  color: "text-zinc-600",   bg: "bg-zinc-50 border-zinc-200" },
 };
+
+function ResearchProgress() {
+  const steps = [
+    "🧠 Planner creating research questions...",
+    "🔍 Researcher investigating question 1...",
+    "🔍 Researcher investigating question 2...",
+    "🔍 Researcher investigating question 3...",
+    "⚖️  Critic reviewing findings...",
+    "✍️  Writer generating final report...",
+  ];
+  const [logs, setLogs] = useState<string[]>([steps[0]]);
+
+  useEffect(() => {
+    const timings = [4000, 35000, 65000, 95000, 125000, 155000];
+    const timers = steps.slice(1).map((s, i) =>
+      setTimeout(() => setLogs((prev) => [...prev, s]), timings[i])
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div className="bg-zinc-900 rounded-xl p-4 font-mono text-xs space-y-1.5">
+      {logs.map((log, i) => (
+        <p key={i} className="text-emerald-400">{log}</p>
+      ))}
+      <p className="text-zinc-500 animate-pulse">▌</p>
+    </div>
+  );
+}
 
 export function ClaimsPanel() {
   const [claim, setClaim] = useState("");
@@ -34,7 +63,6 @@ export function ClaimsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // ⌘+Enter to verify
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && claim.trim().length >= 10 && !loading) verify();
@@ -69,13 +97,17 @@ export function ClaimsPanel() {
   };
 
   const deepResearch = async () => {
-    setResearchLoading(true); setError(null);
-    toast.info("Research started", { description: "Live web research in progress — takes 1–3 minutes…" });
+    setResearchLoading(true); setError(null); setResearch(null);
+    toast.info("Research started", { description: "Live web research in progress — takes 2–4 minutes…" });
     try {
       const res = await fetch(apiUrl("/api/research-claim"), {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ claim }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claim }),
+        signal: AbortSignal.timeout(600000),
       });
       const j = await res.json();
+      if (j.status === "error") throw new Error(j.message);
       if (!res.ok) throw new Error(j.message ?? `Server error ${res.status}`);
       setResearch(j); setReportOpen(true);
       toast.success("Research complete", { description: `${j.sources.length} sources found in ${j.elapsed_seconds.toFixed(0)}s` });
@@ -135,7 +167,8 @@ export function ClaimsPanel() {
             </button>
             <p className="text-[11px] text-zinc-400"><kbd className="bg-zinc-100 px-1.5 py-0.5 rounded font-mono text-[10px]">⌘ Enter</kbd> to verify</p>
           </div>
-          {researchLoading && <p className="text-xs text-zinc-400 animate-pulse">Live web research in progress — this takes 1–3 minutes…</p>}
+
+          {researchLoading && <ResearchProgress />}
         </div>
       </div>
 
@@ -208,11 +241,12 @@ export function ClaimsPanel() {
                     <div>
                       <p className="text-xs font-medium text-zinc-500 mb-2">Sources</p>
                       <ul className="space-y-1">
-                        {research.sources.map((src, i) => (
+                        {research.sources.map((src: any, i: number) => (
                           <li key={i}>
-                            <a href={src} target="_blank" rel="noopener noreferrer"
+                            <a href={typeof src === "string" ? src : src.url} target="_blank" rel="noopener noreferrer"
                               className="flex items-center gap-1 text-xs text-brand hover:underline truncate">
-                              <ExternalLink className="w-3 h-3 shrink-0" />{src}
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                              {typeof src === "string" ? src : (src.title || src.url)}
                             </a>
                           </li>
                         ))}

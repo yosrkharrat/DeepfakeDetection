@@ -168,10 +168,10 @@ class ClaimVerifier:
                 "Clone the submodule with: git submodule update --init --recursive"
             )
         config = _AgentConfig(
-            planner_model="mistral",
-            researcher_model="mistral",
-            critic_model="mistral",
-            writer_model="llama3",
+            planner_model="hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF:latest",
+            researcher_model="hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF:latest",
+            critic_model="hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF:latest",
+            writer_model="hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF:latest",
             max_iterations=max_iterations,
             ollama_base_url=ollama_base_url,
             planner_max_questions=3,
