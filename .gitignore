@@ -45,3 +45,8 @@ external/
 # Local ad-hoc test images
 test sample*.jpg
 
+
+# Credentials - never commit
+kaggle*.json
+.env
+.env.*
