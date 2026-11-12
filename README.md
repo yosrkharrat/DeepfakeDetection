@@ -1,6 +1,46 @@
-# Deepfake Detection
+# Deepfake Detection: Dual-Stream CNN (RGB + FFT)
 
-Dual-stream CNN (RGB + FFT) for deepfake detection, trained on FaceForensics++ C23.
+Detects face-swap and face-reenactment deepfakes by looking at a face twice: once as pixels and once as a frequency spectrum. GAN upsampling leaves periodic artifacts that are hard to see in RGB but stand out in the FFT. A second stream that reads the spectrum catches what the pixel stream misses.
+
+![Architecture](architecture/deepfake_detection_architecture.svg)
+
+## Results
+
+Held-out test split of **FaceForensics++ (C23)**: 4,937 face crops, decision threshold 0.5 ([`results/metrics.json`](results/metrics.json)).
+
+| Metric | Score |
+| --- | --- |
+| Accuracy | **95.87%** |
+| AUC-ROC | **0.9951** |
+| F1 | 0.969 |
+| Precision | 0.990 |
+| Recall | 0.949 |
+| False-positive rate | 1.97% |
+
+Confusion matrix: 3,188 TP · 1,545 TN · 31 FP · 173 FN.
+
+## How it works
+
+1. **Face extraction**: MTCNN (with an OpenCV Haar fallback) pulls 224×224 face crops from 7,000+ videos, which gives **32,898 crops** across all five manipulation methods (Deepfakes, Face2Face, FaceShifter, FaceSwap, NeuralTextures).
+2. **RGB stream**: an ImageNet-pretrained ResNet-18 reads spatial texture and blending seams.
+3. **FFT stream**: a CNN reads the log-magnitude spectrum of the same crop, where upsampling artifacts show up as periodic peaks.
+4. **Fusion**: the two embeddings are concatenated and classified as real or fake. Training uses a class-weighted loss because the data is about 2:1 fake/real.
+
+Stack: PyTorch, torchvision, facenet-pytorch (MTCNN), OpenCV, Albumentations. A Flask app (`run.py`) serves image and video inference with Grad-CAM heatmaps.
+
+## Quickstart
+
+```bash
+pip install -r requirements.txt
+python scripts/precompute_faces.py --raw-dir data/raw/FaceForensics++_C23 --out-dir data/processed
+python scripts/make_splits.py --processed-dir data/processed --output-dir data/splits
+python run.py   # web UI for image / video inference
+```
+
+More detail: [`docs/technical_report.md`](docs/technical_report.md) · [`docs/architecture.md`](docs/architecture.md)
+
+---
+
 
 ## Project Structure
 
